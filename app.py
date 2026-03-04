@@ -25,7 +25,8 @@ def ensure_playwright_chromium():
         return
 
     # Download Chromium
-    subprocess.check_call(["python", "-m", "playwright", "install", "chromium"])import streamlit as st
+    subprocess.check_call(["python", "-m", "playwright", "install", "chromium"])
+import streamlit as st
 import pandas as pd
 from playwright.sync_api import sync_playwright, TimeoutError as PWTimeoutError
 
