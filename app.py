@@ -14,6 +14,27 @@ from playwright.sync_api import sync_playwright, TimeoutError as PWTimeoutError
 # -----------------------------
 # Config
 # -----------------------------
+
+import os, subprocess, shutil
+
+def ensure_playwright_chromium():
+    # força instalação num caminho gravável do app
+    os.environ.setdefault("PLAYWRIGHT_BROWSERS_PATH", "0")
+
+    # se o executável já existir, não faz nada
+    chromium = shutil.which("chromium") or shutil.which("chromium-browser")
+    if chromium:
+        return
+
+    # tenta instalar os browsers do Playwright
+    try:
+        subprocess.check_call(["python", "-m", "playwright", "install", "chromium"])
+    except Exception as e:
+        raise RuntimeError(
+            "Não consegui instalar o Chromium do Playwright no Streamlit Cloud. "
+            "Nesse caso, use a Opção 2 (engine externo) ou mude de hosting para Docker."
+        ) from e
+
 REPORTS_DIR = "reports"
 CALIB_DIR = "calibration"
 CALIB_FILE = os.path.join(CALIB_DIR, "labels.jsonl")
