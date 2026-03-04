@@ -8,24 +8,22 @@ from typing import Any, Dict, List, Optional, Tuple
 import subprocess
 from pathlib import Path
 
+import os, subprocess
+from pathlib import Path
+
 def ensure_playwright_chromium():
-    """
-    Streamlit Cloud-safe: ensure Chromium is installed for Playwright.
-    Uses a writable browsers path inside the app directory to persist across reruns.
-    """
-    browsers_dir = Path(".pw-browsers")
-    browsers_dir.mkdir(exist_ok=True)
+    browsers_dir = Path("/tmp/ms-playwright-browsers")
+    browsers_dir.mkdir(parents=True, exist_ok=True)
 
-    # Force Playwright to use this directory instead of the default cache path
-    os.environ["PLAYWRIGHT_BROWSERS_PATH"] = str(browsers_dir.resolve())
+    os.environ["PLAYWRIGHT_BROWSERS_PATH"] = str(browsers_dir)
 
-    # If it already looks installed, skip
-    # (Any subdir named 'chromium*' is good enough as a fast heuristic)
-    if any(p.name.startswith("chromium") for p in browsers_dir.iterdir()):
+    # Fast skip if something chromium-ish already exists
+    if any(p.name.startswith("chromium") for p in browsers_dir.glob("chromium*")):
         return
 
-    # Download Chromium
+    # Install browsers (chromium only)
     subprocess.check_call(["python", "-m", "playwright", "install", "chromium"])
+    
 import streamlit as st
 import pandas as pd
 from playwright.sync_api import sync_playwright, TimeoutError as PWTimeoutError
