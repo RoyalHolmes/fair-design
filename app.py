@@ -5,7 +5,23 @@ import time
 import hashlib
 from dataclasses import dataclass, asdict
 from typing import Any, Dict, List, Optional, Tuple
+def ensure_playwright_browsers():
+    """
+    Garante que os browsers do Playwright existam no ambiente do Streamlit Cloud.
+    - PLAYWRIGHT_BROWSERS_PATH="0" força usar o cache local do app.
+    - Se não existir, roda `python -m playwright install chromium`.
+    """
+    os.environ.setdefault("PLAYWRIGHT_BROWSERS_PATH", "0")
 
+    # Heurística simples: tenta instalar sempre que não houver cache básico.
+    # (Não é caro no cenário em que já está instalado; ele detecta e não baixa de novo.)
+    try:
+        subprocess.check_call(["python", "-m", "playwright", "install", "chromium"])
+    except Exception as e:
+        raise RuntimeError(
+            "Falhou ao instalar Chromium do Playwright no Streamlit Cloud. "
+            "Veja logs de deploy e confirme packages.txt."
+        ) from e
 import streamlit as st
 import pandas as pd
 from playwright.sync_api import sync_playwright, TimeoutError as PWTimeoutError
