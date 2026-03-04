@@ -5,24 +5,27 @@ import time
 import hashlib
 from dataclasses import dataclass, asdict
 from typing import Any, Dict, List, Optional, Tuple
-def ensure_playwright_browsers():
-    """
-    Garante que os browsers do Playwright existam no ambiente do Streamlit Cloud.
-    - PLAYWRIGHT_BROWSERS_PATH="0" força usar o cache local do app.
-    - Se não existir, roda `python -m playwright install chromium`.
-    """
-    os.environ.setdefault("PLAYWRIGHT_BROWSERS_PATH", "0")
+import subprocess
+from pathlib import Path
 
-    # Heurística simples: tenta instalar sempre que não houver cache básico.
-    # (Não é caro no cenário em que já está instalado; ele detecta e não baixa de novo.)
-    try:
-        subprocess.check_call(["python", "-m", "playwright", "install", "chromium"])
-    except Exception as e:
-        raise RuntimeError(
-            "Falhou ao instalar Chromium do Playwright no Streamlit Cloud. "
-            "Veja logs de deploy e confirme packages.txt."
-        ) from e
-import streamlit as st
+def ensure_playwright_chromium():
+    """
+    Streamlit Cloud-safe: ensure Chromium is installed for Playwright.
+    Uses a writable browsers path inside the app directory to persist across reruns.
+    """
+    browsers_dir = Path(".pw-browsers")
+    browsers_dir.mkdir(exist_ok=True)
+
+    # Force Playwright to use this directory instead of the default cache path
+    os.environ["PLAYWRIGHT_BROWSERS_PATH"] = str(browsers_dir.resolve())
+
+    # If it already looks installed, skip
+    # (Any subdir named 'chromium*' is good enough as a fast heuristic)
+    if any(p.name.startswith("chromium") for p in browsers_dir.iterdir()):
+        return
+
+    # Download Chromium
+    subprocess.check_call(["python", "-m", "playwright", "install", "chromium"])import streamlit as st
 import pandas as pd
 from playwright.sync_api import sync_playwright, TimeoutError as PWTimeoutError
 
@@ -466,6 +469,7 @@ def crawl(url: str, max_depth: int, headed: bool, use_calibration: bool) -> Dict
     stats = load_calibration_stats() if use_calibration else {c: {"tp": 0, "fp": 0} for c in OECD_CATEGORIES}
 
     with sync_playwright() as p:
+        ensure_playwright_chromium()
         browser = p.chromium.launch(headless=not headed)
         context = browser.new_context(viewport={"width": 1280, "height": 800})
         page = context.new_page()
